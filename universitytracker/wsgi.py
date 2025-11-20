@@ -11,6 +11,8 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'universitytracker.settings')
+settings_module ="universitytracker.deployment" if os.environ.get("WEBSITE_HOSTNAME") else "universitytracker.settings"
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", settings_module)
 
 application = get_wsgi_application()
