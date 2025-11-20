@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mi Perfil - UTN Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* Styling Django form elements */
+      label {
+        display: block;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #d1d5db; /* gray-300 */
+        margin-bottom: 0.25rem;
+      }
+      input[type="text"],
+      input[type="email"],
+      select {
+        width: 100%;
+        background-color: #374151; /* gray-700 */
+        border: 1px solid #4b5563; /* gray-600 */
+        color: #ffffff; /* white */
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.375rem;
+        height: 2.75rem; /* Altura consistente */
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+      }
+      select {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.75rem center;
+        background-repeat: no-repeat;
+        background-size: 1.5em 1.5em;
+        padding-right: 2.5rem;
+        color: #ffffff !important;
+      }
+      /* Estilo para las opciones del select en modo oscuro */
+      select option {
+        background-color: #1f2937;
+        color: #ffffff;
+        padding: 0.5rem;
+      }
+      input:focus,
+      select:focus {
+        outline: none;
+        border-color: #6366f1; /* indigo-500 */
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+      }
+      .helptext {
+        display: block;
+        font-size: 0.75rem;
+        color: #9ca3af; /* gray-400 */
+        margin-top: 0.25rem;
+      }
+      ul.errorlist {
+        color: #ef4444; /* red-500 */
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+        list-style-type: disc;
+        padding-left: 1.25rem;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-gray-900 font-sans min-h-screen flex items-center justify-center p-4"
+  >
+    <div
+      class="w-full max-w-lg bg-gray-800 rounded-xl shadow-lg border border-gray-700 overflow-hidden"
+    >
+      <div class="p-8">
+        <div class="text-center mb-8">
+          <h1 class="text-3xl font-bold text-white">👤 Mi Perfil</h1>
+          <p class="text-gray-400 mt-2">Actualiza tus datos académicos</p>
+        </div>
+
+        <form method="post" class="space-y-4">
+          {% csrf_token %} {% for field in form %}
+          <div>
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }} {% if field.help_text %}
+            <p class="helptext">{{ field.help_text }}</p>
+            {% endif %} {% if field.errors %}
+            <div class="text-red-400 text-xs mt-1 list-disc pl-4">
+              {{ field.errors }}
+            </div>
+            {% endif %}
+          </div>
+          {% endfor %}
+
+          <button
+            type="submit"
+            class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200 mt-6"
+          >
+            Actualizar Perfil
+          </button>
+        </form>
+
+        <div class="mt-6 text-center">
+          <a
+            href="{% url 'home' %}"
+            class="text-indigo-400 hover:text-indigo-300 transition-colors"
+          >
+            Volver al Dashboard
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const facultadSelect = document.getElementById("id_facultad");
+        const carreraSelect = document.getElementById("id_carrera");
+
+        // Los datos vienen como string JSON desde la vista
+        const carrerasData = {{ carreras_data|safe }};
+        // Valor actual (ya sea del perfil guardado o de un intento fallido de POST)
+        const initialCarrera = "{{ form.carrera.value|default_if_none:'' }}";
+
+        function updateCarreras(selectedValue) {
+          const selectedFacultad = facultadSelect.value;
+
+          // Limpiar opciones existentes
+          carreraSelect.innerHTML = '<option value="">---------</option>';
+
+          if (selectedFacultad && carrerasData[selectedFacultad]) {
+            const carreras = carrerasData[selectedFacultad];
+            carreras.forEach(function (carrera) {
+              const option = document.createElement("option");
+              option.value = carrera.id;
+              option.textContent = carrera.nombre;
+              carreraSelect.appendChild(option);
+            });
+
+            // Si hay un valor seleccionado para restaurar (y existe en las nuevas opciones)
+            if (selectedValue) {
+              carreraSelect.value = selectedValue;
+            }
+          }
+        }
+
+        // Escuchar cambios
+        facultadSelect.addEventListener("change", function () {
+          // Al cambiar manualmente, reseteamos la selección de carrera
+          updateCarreras(null);
+        });
+
+        // Ejecutar al inicio para cargar las carreras de la facultad actual
+        if (facultadSelect.value) {
+          updateCarreras(initialCarrera);
+        }
+      });
+    </script>
+  </body>
+</html>

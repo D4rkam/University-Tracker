@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mi Carrera - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* Animación suave para las barras de progreso */
+      progress {
+        height: 10px;
+        border-radius: 5px;
+      }
+      progress::-webkit-progress-value {
+        background-color: #818cf8; /* indigo-400 */
+        transition: width 0.5s ease;
+      }
+      progress::-webkit-progress-bar {
+        background-color: #374151; /* gray-700 */
+        border-radius: 5px;
+      }
+      @keyframes slideInFadeOut {
+        0% {
+          opacity: 0;
+          transform: translateY(-20px);
+        }
+        10% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        80% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        100% {
+          opacity: 0;
+          transform: translateY(-20px);
+          pointer-events: none;
+        }
+      }
+      .animate-toast {
+        animation: slideInFadeOut 5s ease-in-out forwards;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-900 text-gray-100 font-sans">
+    <div class="min-h-screen flex flex-col">
+      <!-- 1. BARRA DE NAVEGACIÓN -->
+      <nav class="bg-gray-800 shadow-sm border-b border-gray-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="flex justify-between h-16 items-center">
+            <div class="flex-shrink-0 flex items-center">
+              <span class="text-2xl font-bold text-indigo-400"
+                >🎓 University Tracker</span
+              >
+            </div>
+            <div class="flex items-center space-x-4">
+              <a
+                href="{% url 'editar_perfil' %}"
+                class="inline-flex items-center px-3 py-1.5 border border-gray-600 rounded-md text-xs font-medium text-gray-300 bg-gray-800 hover:bg-gray-700 hover:text-white transition-colors duration-200"
+              >
+                👤 Mi Perfil
+              </a>
+
+              <!-- Botón de Cerrar Sesión (Formulario POST por seguridad) -->
+              <form
+                action="{% url 'logout' %}"
+                method="post"
+                class="m-0 inline"
+              >
+                {% csrf_token %}
+                <button
+                  type="submit"
+                  class="text-sm text-gray-400 hover:text-white transition-colors duration-200"
+                >
+                  Cerrar Sesión
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Main Content -->
+      <main class="flex-grow container mx-auto px-4 py-10 max-w-5xl">
+        <!-- 2. ALERTAS Y MENSAJES -->
+        <!-- Aquí aparecen los carteles de "Carga exitosa" o "Bienvenido" -->
+        {% if messages %}
+        <div class="fixed top-5 right-5 z-50 flex flex-col gap-3">
+          {% for message in messages %}
+          <div
+            class="animate-toast px-6 py-4 rounded-lg shadow-lg text-white font-medium flex items-center gap-3 min-w-[300px] {% if message.tags == 'error' %}bg-red-500{% elif message.tags == 'success' %}bg-green-500{% elif message.tags == 'warning' %}bg-yellow-500{% else %}bg-blue-500{% endif %}"
+          >
+            {% if message.tags == 'success' %}
+            <svg
+              class="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M5 13l4 4L19 7"
+              ></path>
+            </svg>
+            {% elif message.tags == 'error' %}
+            <svg
+              class="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              ></path>
+            </svg>
+            {% else %}
+            <svg
+              class="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              ></path>
+            </svg>
+            {% endif %}
+
+            <span>{{ message }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- 3. ENCABEZADO PRINCIPAL -->
+        <div
+          class="flex flex-col md:flex-row justify-between items-end mb-8 pb-6 border-b border-gray-700 gap-4"
+        >
+          <div>
+            <h1 class="text-4xl font-bold text-white mb-2">
+              Tablero de Control
+            </h1>
+            <h3 class="text-xl text-gray-400">
+              Tu progreso académico en tiempo real
+            </h3>
+          </div>
+          <div
+            class="bg-gray-800 px-6 py-3 rounded-lg border border-gray-700 shadow-sm text-right min-w-[200px]"
+          >
+            <small
+              class="block text-gray-400 text-sm uppercase tracking-wider mb-1"
+              >Promedio General</small
+            >
+            <strong class="text-3xl text-indigo-400"
+              >{{ promedio_general }}</strong
+            >
+          </div>
+        </div>
+
+        <!-- 4. LÓGICA DE CONTENIDO -->
+
+        {% if not anios %}
+        <!-- ESTADO VACÍO: Se muestra si el usuario NO tiene materias cargadas -->
+        <div
+          class="text-center py-16 px-8 border-2 border-dashed border-gray-700 rounded-xl bg-gray-800/50"
+        >
+          <h2 class="text-2xl font-bold text-white mb-4">
+            👋 ¡Hola, {{ user.username }}!
+          </h2>
+          <p class="text-gray-400 mb-8 max-w-lg mx-auto">
+            Tu panel está vacío porque aún no has importado tu plan de
+            estudios.<br />
+            Sube el archivo CSV con tus materias para comenzar a trackear tu
+            carrera.
+          </p>
+
+          <a
+            href="{% url 'cargar_plan' %}"
+            class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+          >
+            📤 Importar Plan de Estudios Ahora
+          </a>
+          <div class="mt-6 text-sm text-gray-500">
+            Formato requerido: Año, Cuatrimestre, Nombre
+          </div>
+        </div>
+
+        {% else %}
+        <!-- DASHBOARD COMPLETO: Se muestra si YA hay datos -->
+
+        <div class="flex justify-end mb-6">
+          <a
+            href="{% url 'cargar_plan' %}"
+            class="inline-flex items-center px-4 py-2 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+          >
+            🔄 Actualizar / Cargar más materias
+          </a>
+        </div>
+
+        <!-- CALENDARIO DE EVALUACIONES -->
+        {% if evaluaciones_calendario %}
+        <div
+          class="bg-gray-800 rounded-xl shadow-lg border border-gray-700 overflow-hidden mb-8"
+        >
+          <div
+            class="px-6 py-4 border-b border-gray-700 bg-gray-800/50 flex justify-between items-center flex-wrap gap-4"
+          >
+            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+              📅 Calendario de Evaluaciones
+            </h2>
+
+            <!-- Filtros de Año Calendario -->
+            <div class="flex gap-2">
+              <button
+                onclick="filterCalendar('all', this)"
+                class="calendar-filter-btn px-3 py-1 rounded-full text-xs font-medium bg-indigo-600 text-white transition-colors"
+              >
+                Todos
+              </button>
+              {% for anio_date in anios_evaluaciones %}
+              <button
+                onclick="filterCalendar('{{ anio_date.year }}', this)"
+                class="calendar-filter-btn px-3 py-1 rounded-full text-xs font-medium bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white transition-colors"
+              >
+                {{ anio_date.year }}
+              </button>
+              {% endfor %}
+            </div>
+          </div>
+          <div class="p-6 overflow-x-auto">
+            <div class="flex gap-6 pb-2">
+              {% regroup evaluaciones_calendario by fecha|date:"F Y" as evaluaciones_por_mes %} {% for mes in evaluaciones_por_mes %}
+              <div
+                class="calendar-month min-w-[250px] bg-gray-700/30 rounded-lg p-4 border border-gray-700"
+                data-year="{{ mes.list.0.fecha.year }}"
+              >
+                <h3
+                  class="text-indigo-400 font-bold mb-3 uppercase text-sm border-b border-gray-600 pb-2"
+                >
+                  {{ mes.grouper }}
+                </h3>
+                <div class="space-y-3">
+                  {% for eval in mes.list %}
+                  <div class="flex items-start gap-3 group">
+                    <div
+                      class="bg-gray-800 rounded px-2 py-1 text-center min-w-[40px] border border-gray-600 group-hover:border-indigo-500 transition-colors"
+                    >
+                      <span class="block text-xs text-gray-400 uppercase"
+                        >{{ eval.fecha|date:"D" }}</span
+                      >
+                      <span
+                        class="block text-lg font-bold text-white leading-none"
+                        >{{ eval.fecha|date:"d" }}</span
+                      >
+                    </div>
+                    <div>
+                      <p
+                        class="text-sm font-medium text-gray-200 line-clamp-1"
+                        title="{{ eval.materia.nombre }}"
+                      >
+                        {{ eval.materia.nombre }}
+                      </p>
+                      <p class="text-xs text-gray-400">
+                        {{ eval.get_instancia_display }} {% if eval.nota %}
+                        <span class="text-indigo-300 font-bold ml-1"
+                          >({{ eval.nota }})</span
+                        >
+                        {% endif %}
+                      </p>
+                    </div>
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Filtros de Año -->
+        <div class="flex flex-wrap gap-2 mb-6 overflow-x-auto pb-2">
+          <button
+            onclick="filterYear('all', this)"
+            class="filter-btn px-4 py-2 rounded-full text-sm font-medium bg-indigo-600 text-white transition-colors whitespace-nowrap"
+          >
+            Todos
+          </button>
+          {% for anio in anios %}
+          <button
+            onclick="filterYear('{{ anio.numero }}', this)"
+            class="filter-btn px-4 py-2 rounded-full text-sm font-medium bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white transition-colors whitespace-nowrap"
+          >
+            {{ anio.numero }}° Año
+          </button>
+          {% endfor %}
+        </div>
+
+        <!-- Bucle por cada año de la carrera -->
+        {% for anio in anios %}
+        <div
+          id="year-{{ anio.numero }}"
+          class="year-section bg-gray-800 rounded-xl shadow-lg border border-gray-700 overflow-hidden mb-8"
+        >
+          <div class="p-6 border-b border-gray-700 bg-gray-800/50">
+            <div class="flex justify-between items-center mb-4">
+              <h4 class="text-xl font-bold text-white">
+                {{ anio.numero }}° Año
+              </h4>
+              <span
+                class="text-sm font-bold text-indigo-400 bg-indigo-900/30 px-3 py-1 rounded-full"
+              >
+                {{ anio.progreso }}% Completado
+              </span>
+            </div>
+
+            <!-- Barra de progreso visual -->
+            <div class="w-full bg-gray-700 rounded-full h-2.5">
+              <div
+                class="bg-indigo-500 h-2.5 rounded-full transition-all duration-500"
+                style="width: {{ anio.progreso }}%"
+              ></div>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-700">
+              <thead class="bg-gray-900/50">
+                <tr>
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider"
+                  >
+                    Materia
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider w-40"
+                  >
+                    Cuatrimestre
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider w-32"
+                  >
+                    Estado
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider w-24"
+                  >
+                    Promedio
+                  </th>
+                  <th
+                    scope="col"
+                    class="px-6 py-3 text-center text-xs font-medium text-gray-400 uppercase tracking-wider w-24"
+                  >
+                    Nota Final
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="bg-gray-800 divide-y divide-gray-700">
+                {% for materia in anio.materias %}
+                <tr
+                  class="hover:bg-gray-700/50 transition-colors duration-150 cursor-pointer group"
+                  onclick="toggleDetails('details-{{ materia.id }}')"
+                >
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                      <svg
+                        class="w-4 h-4 text-gray-500 mr-3 transform group-hover:text-indigo-400 transition-transform duration-200"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M19 9l-7 7-7-7"
+                        ></path>
+                      </svg>
+
+                      <a
+                        href="{% url 'editar_materia' materia.id %}"
+                        class="text-gray-500 hover:text-indigo-400 mr-3 transition-colors duration-200 z-10 relative"
+                        title="Editar materia"
+                        onclick="event.stopPropagation();"
+                      >
+                        <svg
+                          class="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                          ></path>
+                        </svg>
+                      </a>
+
+                      <div>
+                        <div class="text-sm font-medium text-white">
+                          {{ materia.nombre }}
+                        </div>
+                        {% if materia.correlativas.all %}
+                        <div class="text-xs text-gray-500 mt-1">
+                          Requiere: {{ materia.correlativas.count }}
+                          correlativas
+                        </div>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                    {% if materia.cuatrimestre == 0 %}
+                    <span
+                      class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-300"
+                      >Anual</span
+                    >
+                    {% elif materia.cuatrimestre == 1 %}
+                    <span
+                      class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-300"
+                      >1° Cuat</span
+                    >
+                    {% else %}
+                    <span
+                      class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-700 text-gray-300"
+                      >2° Cuat</span
+                    >
+                    {% endif %}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap text-center">
+                    <!-- Badge dinámico según estado -->
+                    {% if materia.estado == 'AP' %}
+                    <span
+                      class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-900 text-green-200 border border-green-700/50"
+                    >
+                      {{ materia.get_estado_display }}
+                    </span>
+                    {% elif materia.estado == 'RP' %}
+                    <span
+                      class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-900 text-red-200 border border-red-700/50"
+                    >
+                      {{ materia.get_estado_display }}
+                    </span>
+                    {% elif materia.estado == 'CU' %}
+                    <span
+                      class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-900 text-blue-200 border border-blue-700/50"
+                    >
+                      {{ materia.get_estado_display }}
+                    </span>
+                    {% else %}
+                    <span
+                      class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-700 text-gray-400 border border-gray-600"
+                    >
+                      {{ materia.get_estado_display }}
+                    </span>
+                    {% endif %}
+                  </td>
+                  <td
+                    class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-300"
+                  >
+                    {% with prom=materia.get_promedio_parciales %} {% if prom %}
+                    {{ prom|floatformat:2 }} {% else %}
+                    <span class="text-gray-600">-</span>
+                    {% endif %} {% endwith %}
+                  </td>
+                  <td
+                    class="px-6 py-4 whitespace-nowrap text-center text-sm font-bold text-white"
+                  >
+                    {% if materia.nota_final %}
+                    <span class="text-indigo-300"
+                      >{{ materia.nota_final }}</span
+                    >
+                    {% else %}
+                    <span class="text-gray-600">-</span>
+                    {% endif %}
+                  </td>
+                </tr>
+
+                <!-- Fila de detalles (Correlativas) -->
+                <tr
+                  id="details-{{ materia.id }}"
+                  class="hidden bg-gray-800/30 border-b border-gray-700"
+                >
+                  <td colspan="5" class="px-6 py-4">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <!-- Requisitos -->
+                      <div>
+                        <h5
+                          class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2"
+                        >
+                          Requisitos (Correlativas)
+                        </h5>
+                        {% if materia.correlativas.all %}
+                        <ul class="space-y-1">
+                          {% for corr in materia.correlativas.all %}
+                          <li class="text-sm text-gray-300 flex items-center">
+                            <span
+                              class="w-2 h-2 rounded-full mr-2 {% if corr.estado == 'AP' %}bg-green-500{% else %}bg-red-500{% endif %}"
+                            ></span>
+                            {{ corr.nombre }}
+                          </li>
+                          {% endfor %}
+                        </ul>
+                        {% else %}
+                        <p class="text-sm text-gray-500 italic">
+                          No tiene correlativas.
+                        </p>
+                        {% endif %}
+                      </div>
+
+                      <!-- Habilita -->
+                      <div>
+                        <h5
+                          class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2"
+                        >
+                          Habilita para cursar
+                        </h5>
+                        {% if materia.es_correlativa_de.all %}
+                        <ul class="space-y-1">
+                          {% for habilitada in materia.es_correlativa_de.all %}
+                          <li class="text-sm text-gray-300 flex items-center">
+                            <span
+                              class="w-2 h-2 rounded-full mr-2 bg-indigo-500"
+                            ></span>
+                            {{ habilitada.nombre }}
+                          </li>
+                          {% endfor %}
+                        </ul>
+                        {% else %}
+                        <p class="text-sm text-gray-500 italic">
+                          No habilita otras materias directamente.
+                        </p>
+                        {% endif %}
+                      </div>
+
+                      <!-- Evaluaciones -->
+                      <div>
+                        <h5
+                          class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2"
+                        >
+                          Evaluaciones
+                        </h5>
+                        {% if materia.evaluaciones.all %}
+                        <ul class="space-y-1">
+                          {% for eval in materia.evaluaciones.all %}
+                          <li
+                            class="text-sm text-gray-300 flex justify-between items-center"
+                          >
+                            <span>{{ eval.get_instancia_display }}</span>
+                            <span class="font-bold text-indigo-300"
+                              >{{ eval.nota|default:"-" }}</span
+                            >
+                          </li>
+                          {% endfor %}
+                        </ul>
+                        {% else %}
+                        <p class="text-sm text-gray-500 italic">
+                          No hay notas cargadas.
+                        </p>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% endfor %} {% endif %}
+      </main>
+    </div>
+    <script>
+      function filterYear(year, btn) {
+        // Filtrar secciones
+        const sections = document.querySelectorAll(".year-section");
+        sections.forEach((section) => {
+          if (year === "all" || section.id === `year-${year}`) {
+            section.classList.remove("hidden");
+          } else {
+            section.classList.add("hidden");
+          }
+        });
+
+        // Actualizar botones
+        const buttons = document.querySelectorAll(".filter-btn");
+        buttons.forEach((b) => {
+          b.classList.remove("bg-indigo-600", "text-white");
+          b.classList.add("bg-gray-700", "text-gray-300");
+        });
+
+        // Activar botón clickeado
+        btn.classList.remove("bg-gray-700", "text-gray-300");
+        btn.classList.add("bg-indigo-600", "text-white");
+      }
+
+      function filterCalendar(year, btn) {
+        // Filtrar meses del calendario
+        const months = document.querySelectorAll(".calendar-month");
+        months.forEach((month) => {
+          if (year === "all" || month.dataset.year === year) {
+            month.classList.remove("hidden");
+          } else {
+            month.classList.add("hidden");
+          }
+        });
+
+        // Actualizar botones
+        const buttons = document.querySelectorAll(".calendar-filter-btn");
+        buttons.forEach((b) => {
+          b.classList.remove("bg-indigo-600", "text-white");
+          b.classList.add("bg-gray-700", "text-gray-300");
+        });
+
+        // Activar botón clickeado
+        btn.classList.remove("bg-gray-700", "text-gray-300");
+        btn.classList.add("bg-indigo-600", "text-white");
+      }
+
+      function toggleDetails(id) {
+        const element = document.getElementById(id);
+        if (element.classList.contains("hidden")) {
+          element.classList.remove("hidden");
+        } else {
+          element.classList.add("hidden");
+        }
+      }
+    </script>
+  </body>
+</html>
