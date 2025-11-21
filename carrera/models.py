@@ -20,7 +20,6 @@ class Materia(models.Model):
         User,
         on_delete=models.CASCADE,
         related_name="materias",
-        default=User.objects.first().id,
     )
     nombre = models.CharField(max_length=200, help_text="Ej: Análisis Matemático I")
     anio_plan = models.PositiveSmallIntegerField(
