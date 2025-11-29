@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "carrera",
+    "django_otp",  # MFA DJANGO
+    "django_otp.plugins.otp_totp",  # MFA DJANGO
 ]
 
 
@@ -48,6 +50,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django_otp.middleware.OTPMiddleware",  # MFA DJANGO
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -136,7 +139,7 @@ JAZZMIN_UI_TWEAKS = {
 LANGUAGE_CODE = "es"
 
 
-TIME_ZONE = "GMT"
+TIME_ZONE = "America/Argentina/Buenos_Aires"
 
 
 USE_I18N = True
