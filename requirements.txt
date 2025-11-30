@@ -1,10 +1,15 @@
 asgiref==3.11.0
+colorama==0.4.6
 Django==5.2.8
 django-jazzmin==3.0.1
+django-otp==1.6.3
+django-session-timeout==0.1.0
 gunicorn==23.0.0
 packaging==25.0
-psycopg2-binary==2.9.11
+psycopg2-binary==2.9.11 #version necesaria para el despliegue
 python-dotenv==1.2.1
+qrcode==8.2
+six==1.17.0
 sqlparse==0.5.3
 tzdata==2025.2
 whitenoise==6.11.0
