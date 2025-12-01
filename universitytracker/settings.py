@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "carrera",
+    "django_otp",  # MFA DJANGO
+    "django_otp.plugins.otp_totp",  # MFA DJANGO
 ]
 
 
@@ -48,8 +50,11 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django_otp.middleware.OTPMiddleware",  # MFA DJANGO
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",  # Session Timeout
+    "django_session_timeout.middleware.SessionTimeoutMiddleware",  # Session Timeout
 ]
 
 ROOT_URLCONF = "universitytracker.urls"
@@ -125,8 +130,8 @@ JAZZMIN_SETTINGS = {
 
 # Personalización de Colores (Tema Oscuro / Moderno)
 JAZZMIN_UI_TWEAKS = {
-    "theme": "flatly",  # Opciones: cerulean, cosmo, cyborg, darkly, flatly, journal, litera, lumen, lux, materia, minty, pulse, sandstone, simplex, sketchy, slate, solar, spacelab, superhero, united, yeti
-    # "dark_mode_theme": "darkly", # Si quieres modo oscuro
+    "theme": "darkly",  # Opciones: cerulean, cosmo, cyborg, darkly, flatly, journal, litera, lumen, lux, materia, minty, pulse, sandstone, simplex, sketchy, slate, solar, spacelab, superhero, united, yeti
+    "dark_mode_theme": "darkly",  # Si quieres modo oscuro
 }
 
 
@@ -136,7 +141,7 @@ JAZZMIN_UI_TWEAKS = {
 LANGUAGE_CODE = "es"
 
 
-TIME_ZONE = "GMT"
+TIME_ZONE = "America/Argentina/Buenos_Aires"
 
 
 USE_I18N = True
@@ -165,3 +170,10 @@ LOGOUT_REDIRECT_URL = "login"
 
 # A dónde ir si @login_required bloquea a un usuario
 LOGIN_URL = "login"
+
+
+# Configuración de sesión
+SESSION_EXPIRE_SECONDS = 1800  # 30 minutos
+SESSION_EXPIRE_AFTER_LAST_ACTIVITY = True
+SESSION_TIMEOUT_REDIRECT = "login"
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
